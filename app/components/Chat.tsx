@@ -12,6 +12,15 @@ type Message = {
 
 const ANALYZE_PROMPT = "Analyze this document.";
 
+function normalizeErrorMessage(raw: string): string {
+  const s = raw.trim().toLowerCase();
+  if (s.includes("request entity too large") || s.includes("payload too large") || s.includes("413"))
+    return "ファイルが大きすぎます。小さくするか、別のファイルを選んでください。";
+  if (s.includes("not valid json") || s.includes("unexpected token"))
+    return "サーバーからの応答が不正です。しばらくしてから再試行してください。";
+  return raw || "エラーが発生しました";
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -46,8 +55,15 @@ export default function Chat() {
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || res.statusText);
+        const raw = await res.text();
+        let message = res.statusText;
+        try {
+          const data = raw ? JSON.parse(raw) : {};
+          if (typeof data?.error === "string") message = data.error;
+        } catch {
+          if (raw) message = raw;
+        }
+        throw new Error(normalizeErrorMessage(message));
       }
 
       const reader = res.body?.getReader();
@@ -120,10 +136,13 @@ export default function Chat() {
         try {
           data = text ? JSON.parse(text) : {};
         } catch {
-          if (!res.ok) throw new Error(text || "アップロードに失敗しました");
-          throw new Error("サーバーからの応答が不正です");
+          const msg =
+            !res.ok
+              ? text || res.statusText || "アップロードに失敗しました"
+              : "サーバーからの応答が不正です";
+          throw new Error(normalizeErrorMessage(msg));
         }
-        if (!res.ok) throw new Error(data.error || text || "アップロードに失敗しました");
+        if (!res.ok) throw new Error(normalizeErrorMessage(data.error || text || "アップロードに失敗しました"));
         fileIdRef.current = data.id;
         setMessages((prev) => [
           ...prev,
@@ -132,7 +151,8 @@ export default function Chat() {
         setSending(true);
         await sendToDify(ANALYZE_PROMPT, data.id, conversationIdRef.current);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "アップロードに失敗しました");
+        const msg = err instanceof Error ? err.message : "アップロードに失敗しました";
+        setError(normalizeErrorMessage(msg));
       } finally {
         setUploading(false);
         setSending(false);
@@ -154,7 +174,8 @@ export default function Chat() {
     setSending(true);
     sendToDify(text, fileIdRef.current, conversationIdRef.current)
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "送信に失敗しました");
+        const msg = err instanceof Error ? err.message : "送信に失敗しました";
+        setError(normalizeErrorMessage(msg));
       })
       .finally(() => {
         setSending(false);
