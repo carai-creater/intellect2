@@ -58,8 +58,8 @@ export default function Chat() {
         const raw = await res.text();
         let message = res.statusText;
         try {
-          const data = raw ? JSON.parse(raw) : {};
-          if (typeof data?.error === "string") message = data.error;
+          const data = (raw ? JSON.parse(raw) : {}) as { error?: string };
+          if (typeof data.error === "string") message = data.error;
         } catch {
           if (raw) message = raw;
         }
