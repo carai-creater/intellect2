@@ -120,10 +120,10 @@ export default function Chat() {
         try {
           data = text ? JSON.parse(text) : {};
         } catch {
-          if (!res.ok) throw new Error(text || "Upload failed");
-          throw new Error("Invalid response from server");
+          if (!res.ok) throw new Error(text || "アップロードに失敗しました");
+          throw new Error("サーバーからの応答が不正です");
         }
-        if (!res.ok) throw new Error(data.error || text || "Upload failed");
+        if (!res.ok) throw new Error(data.error || text || "アップロードに失敗しました");
         fileIdRef.current = data.id;
         setMessages((prev) => [
           ...prev,
@@ -132,7 +132,7 @@ export default function Chat() {
         setSending(true);
         await sendToDify(ANALYZE_PROMPT, data.id, conversationIdRef.current);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
+        setError(err instanceof Error ? err.message : "アップロードに失敗しました");
       } finally {
         setUploading(false);
         setSending(false);
@@ -154,7 +154,7 @@ export default function Chat() {
     setSending(true);
     sendToDify(text, fileIdRef.current, conversationIdRef.current)
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Send failed");
+        setError(err instanceof Error ? err.message : "送信に失敗しました");
       })
       .finally(() => {
         setSending(false);
@@ -164,14 +164,14 @@ export default function Chat() {
   return (
     <div className={styles.chat}>
       <div className={styles.chatToolbar}>
-        <h1>Learning Tutor</h1>
+        <h1>ラーニングチューター</h1>
         <label
           className={`${styles.uploadBtn} ${uploading ? styles.disabled : ""}`}
         >
           <span className={styles.uploadIcon} aria-hidden>
             📎
           </span>
-          Upload Study Material
+          教材をアップロード
           <input
             type="file"
             accept=".pdf,.doc,.docx"
@@ -188,7 +188,7 @@ export default function Chat() {
           <button
             type="button"
             onClick={() => setError(null)}
-            aria-label="Dismiss"
+            aria-label="閉じる"
           >
             ×
           </button>
@@ -198,7 +198,7 @@ export default function Chat() {
       {uploading && (
         <div className={styles.overlay}>
           <div className={styles.spinner} />
-          <p>Processing document…</p>
+          <p>ドキュメントを処理中…</p>
         </div>
       )}
 
@@ -206,8 +206,8 @@ export default function Chat() {
         {messages.length === 0 ? (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>📄</div>
-            <p>Upload study material to get started</p>
-            <span>PDF or Word documents supported</span>
+            <p>教材をアップロードして始めましょう</p>
+            <span>PDF・Word（.doc / .docx）に対応</span>
           </div>
         ) : (
           messages.map((m) => (
@@ -235,7 +235,7 @@ export default function Chat() {
         <input
           type="text"
           className={styles.input}
-          placeholder="Ask about your material…"
+          placeholder="教材について質問…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) =>
@@ -248,7 +248,7 @@ export default function Chat() {
           className={styles.sendBtn}
           onClick={handleSend}
           disabled={!input.trim() || sending}
-          aria-label="Send"
+          aria-label="送信"
         >
           ↑
         </button>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Learning Tutor",
-  description: "Simple Learning Tutor — chat with your study materials",
+  title: "ラーニングチューター",
+  description: "シンプルなラーニングチューター — 教材とチャットで学ぶ",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body>{children}</body>
     </html>
   );
