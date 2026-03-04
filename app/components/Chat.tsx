@@ -115,8 +115,15 @@ export default function Chat() {
         const form = new FormData();
         form.append("file", file);
         const res = await fetch("/api/upload", { method: "POST", body: form });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Upload failed");
+        const text = await res.text();
+        let data: { id?: string; error?: string } = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          if (!res.ok) throw new Error(text || "Upload failed");
+          throw new Error("Invalid response from server");
+        }
+        if (!res.ok) throw new Error(data.error || text || "Upload failed");
         fileIdRef.current = data.id;
         setMessages((prev) => [
           ...prev,

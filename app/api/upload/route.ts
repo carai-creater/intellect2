@@ -32,14 +32,22 @@ export async function POST(request: NextRequest) {
     body,
   });
 
+  const text = await res.text();
   if (!res.ok) {
-    const text = await res.text();
     return NextResponse.json(
       { error: text || `Upload failed: ${res.status}` },
       { status: res.status }
     );
   }
 
-  const data = await res.json();
+  let data: { id?: string; name?: string };
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid response from upload service" },
+      { status: 502 }
+    );
+  }
   return NextResponse.json({ id: data.id, name: data.name });
 }
