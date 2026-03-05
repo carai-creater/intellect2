@@ -11,6 +11,8 @@ type Message = {
 };
 
 const ANALYZE_PROMPT = "Analyze this document.";
+const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = "4.5";
 
 function normalizeErrorMessage(raw: string): string {
   const s = raw.trim().toLowerCase();
@@ -131,6 +133,13 @@ export default function Chat() {
       const file = e.target.files?.[0];
       if (!file) return;
       setError(null);
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setError(
+          `ファイルが大きすぎます（${MAX_FILE_SIZE_MB}MB以下）。小さくするか、別のファイルを選んでください。`
+        );
+        e.target.value = "";
+        return;
+      }
       setUploading(true);
       try {
         const form = new FormData();
@@ -233,7 +242,7 @@ export default function Chat() {
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>📄</div>
             <p>教材をアップロードして始めましょう</p>
-            <span>PDF・Word（.doc / .docx）に対応</span>
+            <span>PDF・Word（.doc / .docx）に対応・{MAX_FILE_SIZE_MB}MB以下</span>
           </div>
         ) : (
           messages.map((m) => (
