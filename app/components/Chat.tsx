@@ -16,7 +16,6 @@ function normalizeErrorMessage(raw: string): string {
   const s = raw.trim().toLowerCase();
   if (
     s.includes("request entity too large") ||
-    s.includes("request en") ||
     s.includes("payload too large") ||
     s.includes("413")
   )
@@ -63,8 +62,9 @@ export default function Chat() {
         const raw = await res.text();
         let message = res.statusText;
         try {
-          const data = (raw ? JSON.parse(raw) : {}) as { error?: string };
-          if (typeof data.error === "string") message = data.error;
+          const data = (raw ? JSON.parse(raw) : {}) as { error?: string } | null;
+          if (data && typeof data === "object" && typeof data.error === "string")
+            message = data.error;
         } catch {
           if (raw) message = raw;
         }
