@@ -14,7 +14,12 @@ const ANALYZE_PROMPT = "Analyze this document.";
 
 function normalizeErrorMessage(raw: string): string {
   const s = raw.trim().toLowerCase();
-  if (s.includes("request entity too large") || s.includes("payload too large") || s.includes("413"))
+  if (
+    s.includes("request entity too large") ||
+    s.includes("request en") ||
+    s.includes("payload too large") ||
+    s.includes("413")
+  )
     return "ファイルが大きすぎます。小さくするか、別のファイルを選んでください。";
   if (s.includes("not valid json") || s.includes("unexpected token"))
     return "サーバーからの応答が不正です。しばらくしてから再試行してください。";
