@@ -78,42 +78,51 @@ export default function Chat() {
       if (!reader) throw new Error("No response body");
 
       let full = "";
+      let streamBuffer = "";
       const assistantId = `msg-${Date.now()}`;
       setMessages((prev) => [
         ...prev,
         { id: assistantId, content: "", isUser: false, streaming: true },
       ]);
 
+      const applySseData = (rawData: string) => {
+        const raw = rawData.trim();
+        if (raw === "[DONE]" || !raw) return;
+        try {
+          const data = JSON.parse(raw);
+          if (data.conversation_id) conversationIdRef.current = data.conversation_id;
+          if (typeof data.answer === "string") {
+            full += data.answer;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: full, streaming: true } : m
+              )
+            );
+            setTimeout(scrollToBottom, 0);
+          }
+        } catch {
+          // Ignore parse errors for non-JSON SSE messages (heartbeat, metadata, etc.).
+        }
+      };
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
+          streamBuffer += decoder.decode(value, { stream: true });
+          const lines = streamBuffer.split("\n");
+          streamBuffer = lines.pop() || "";
+
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const raw = line.slice(6).trim();
-              if (raw === "[DONE]" || !raw) continue;
-              try {
-                const data = JSON.parse(raw);
-                if (data.conversation_id)
-                  conversationIdRef.current = data.conversation_id;
-                if (typeof data.answer === "string") {
-                  full += data.answer;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? { ...m, content: full, streaming: true }
-                        : m
-                    )
-                  );
-                  setTimeout(scrollToBottom, 0);
-                }
-              } catch {
-                // ignore parse errors for partial chunks
-              }
-            }
+            const normalized = line.replace(/\r$/, "");
+            if (!normalized.startsWith("data:")) continue;
+            applySseData(normalized.slice(5));
           }
+        }
+
+        const trailing = streamBuffer + decoder.decode();
+        if (trailing.trim().startsWith("data:")) {
+          applySseData(trailing.trim().slice(5));
         }
       } finally {
         setMessages((prev) =>
@@ -157,6 +166,9 @@ export default function Chat() {
           throw new Error(normalizeErrorMessage(msg));
         }
         if (!res.ok) throw new Error(normalizeErrorMessage(data.error || text || "アップロードに失敗しました"));
+        if (!data.id || typeof data.id !== "string") {
+          throw new Error("アップロード結果にファイルIDが含まれていません");
+        }
         fileIdRef.current = data.id;
         setMessages((prev) => [
           ...prev,
